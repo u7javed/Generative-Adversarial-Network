@@ -1,4 +1,7 @@
 # Generative-Adversarial-Network
+
+Paper: https://arxiv.org/pdf/1406.2661.pdf
+
 An implementation and script to training a Vanilla Generative Adversarial Network described in the paper by Ian Goodfellow. A GAN comprises of two adversarial models that play a minimax game. The Discriminator model tries to distinguish fake data from real data while the Generator tries to fool the Discriminator into classifying fake data as real. The ideal equilibrium for a GAN model is called the NASH equilibrium. 
 
 The Discriminator Loss is defined as max([log(D(x)) + log(1 - D(G(z)))]) where D, G, x, z, G(z) are Discriminator, Generator, real data, latent vector, fake data respectively.
