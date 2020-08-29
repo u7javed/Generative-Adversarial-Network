@@ -12,7 +12,7 @@ from models import *
 
 class Trainer():
 
-    def __init__(self, data_directory, batch_size, latent_size=100, device='cpu', lr=0.0002, num_workers=1):
+    def __init__(self, data_directory, class_size, embedding_dim, batch_size, latent_size=100, device='cpu', lr=0.0002, num_workers=1):
         #load dataset
         transformation = transforms.Compose([
             transforms.ToTensor(),
@@ -31,12 +31,13 @@ class Trainer():
         self.data_loader = torch.utils.data.DataLoader(self.dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
         self.batch_size = batch_size
         self.device = device
+        self.class_size = class_size
 
         #define models
         self.latent_size = 100 
 
-        self.dis = Discriminator().to(device)
-        self.gen = Generator(latent_size).to(device)
+        self.dis = Discriminator(class_size, embedding_dim).to(device)
+        self.gen = Generator(latent_size,class_size, embedding_dim).to(device)
 
         self.loss_func = nn.BCELoss().to(device)
 
@@ -53,21 +54,22 @@ class Trainer():
             gen_loss = 0
             dis_loss = 0
             cur_time = time.time()
-            for images, _ in self.data_loader:
+            for images, labels in self.data_loader:
                 b_size = len(images)
                 #train Discriminator
                 self.optimizer_d.zero_grad()
 
                 #fake loss
-                fake_labels = torch.full((b_size,), 0).to(self.device)
+                rand_labels = torch.LongTensor(np.random.randint(0, self.class_size, b_size)).to(self.device)
                 z = torch.randn(b_size, self.latent_size).to(self.device)
-                fake_images = self.gen(z)
-                fake_pred = self.dis(fake_images)
+                fake_images = self.gen(z, rand_labels)
+                fake_pred = self.dis(fake_images, rand_labels)
+                fake_labels = torch.full((b_size,), 0).to(self.device)
                 d_loss_fake = self.loss_func(fake_pred, fake_labels)
 
                 #real loss
                 real_labels = torch.full((b_size,), 1).to(self.device)
-                real_pred = self.dis(images.to(self.device))
+                real_pred = self.dis(images.to(self.device), labels.to(self.device))
                 d_loss_real = self.loss_func(real_pred, real_labels)
 
                 d_loss = (d_loss_real + d_loss_fake)*(1/2)
@@ -79,9 +81,10 @@ class Trainer():
                 #train Generator
                 self.optimizer_g.zero_grad()
 
+                rand_labels = torch.LongTensor(np.random.randint(0, self.class_size, b_size)).to(self.device)
                 z = torch.randn(b_size, self.latent_size).to(self.device)
-                fake_images = self.gen(z)
-                fake_pred = self.dis(fake_images)
+                fake_images = self.gen(z, rand_labels)
+                fake_pred = self.dis(fake_images, rand_labels)
                 g_loss = self.loss_func(fake_pred, real_labels)
                 g_loss.backward()
                 self.optimizer_g.step()
@@ -96,19 +99,19 @@ class Trainer():
             dis_loss_list.append(dis_loss)
 
             #show samples
-            z = torch.randn(16, self.latent_size).to(self.device)
-            sample_images = self.gen(z)
+            labels = torch.LongTensor(np.arange(10)).to(self.device)
+            z = torch.randn(10, self.latent_size).to(self.device)
+            sample_images = self.gen(z, labels)
 
             #save models to model_directory
             torch.save(self.gen.state_dict(), saved_model_directory + '/generator_{}.pt'.format(epoch))
             torch.save(self.dis.state_dict(), saved_model_directory + '/discriminator_{}.pt'.format(epoch))
 
-            image_grid = torchvision.utils.make_grid(sample_images.cpu().detach(), nrow=4, normalize=True)
+            image_grid = torchvision.utils.make_grid(sample_images.cpu().detach(), nrow=5, normalize=True)
             _, plot = plt.subplots(figsize=(12, 12))
             plt.axis('off')
             plot.imshow(image_grid.permute(1, 2, 0))
             plt.savefig(saved_image_directory + '/epoch_{}_checkpoint.jpg'.format(epoch), bbox_inches='tight')
-            plt.show()
 
         finish_time = time.time() - start_time
         print('Training Finished. Took {:.4f} seconds or {:.4f} hours to complete.'.format(finish_time, finish_time/3600))
@@ -120,6 +123,8 @@ def main():
     parser.add_argument('--data_directory', type=str, default='data', help='directory to MNIST dataset files')
     parser.add_argument('--saved_image_directory', type=str, default='data/saved_images', help='directory to where image samples will be saved')
     parser.add_argument('--saved_model_directory', type=str, default='saved_models', help='directory to where model weights will be saved')
+    parser.add_argument('--class_size', type=int, default=10, help='number of unique classes in dataset')
+    parser.add_argument('--embedding_dim', type=int, default=10, help='size of embedding vector')
     parser.add_argument('--batch_size', type=int, default=64, help='size of batches passed through networks at each step')
     parser.add_argument('--latent_size', type=int, default=100, help='size of gaussian noise vector')
     parser.add_argument('--device', type=str, default='cpu', help='cpu or gpu depending on availability and compatability')
@@ -131,6 +136,8 @@ def main():
     data_dir = args.data_directory
     saved_image_dir = args.saved_image_directory
     saved_model_dir = args.saved_model_directory
+    class_size = args.class_size
+    embedding_dim = args.embedding_dim
     batch_size = args.batch_size
     latent_size = args.latent_size
     device = args.device
@@ -138,7 +145,7 @@ def main():
     num_workers = args.num_workers
     epochs = args.epochs
 
-    gan = Trainer(data_dir, batch_size, latent_size, device, lr, num_workers)
+    gan = Trainer(data_dir, class_size, embedding_dim, batch_size, latent_size, device, lr, num_workers)
     gen_loss_lost, dis_loss_list = gan.train(epochs, saved_image_dir, saved_model_dir)
 
 
