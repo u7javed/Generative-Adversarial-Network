@@ -19,5 +19,5 @@ There are 2 python files:
     - Saves models at each epoch to specified directory
     
 Fake data progression through epoch trains:
-![](epoch_progression.gif)
+![](data/saved_images/epoch_progression.gif)
     
