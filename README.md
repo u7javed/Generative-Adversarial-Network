@@ -10,7 +10,7 @@ The Generator loss is defined as min([log(1 - D(G(z))])
 
 There are 2 python files:
   - models.py
-    - Models.py contains the architecture for both the generator and discriminator. The vanilla GAN is consists of feed-forward generator and discriminator utilizing a leaky relu as its activation function. Tanh is used as the output activation for the generator while a sigmoid classification activation function is used for the discriminator.
+    - Models.py contains the architecture for both the generator and discriminator. The vanilla GAN is consists of feed-forward generator and discriminator utilizing a leaky relu as its activation function. Tanh activation is used as the output activation for the generator while a sigmoid classification activation function is used for the discriminator.
     
   - train.py (EXECTUABLE SCRIPT)
     - train.py is an executable python script taking in various hyperparameters for training as arguments. This script loads the models and trains the models through a certain number of epochs.
