@@ -18,3 +18,6 @@ There are 2 python files:
     - Saves sample images from each epoch to specified directory
     - Saves models at each epoch to specified directory
     
+Fake data progression through epoch trains:
+![](epoch_progression.gif)
+    
